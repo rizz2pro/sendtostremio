@@ -1,0 +1,19 @@
+Index: app/src/main/java/com/rizz2pro/sharetostremio/ui/theme/Theme.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.rizz2pro.sharetostremio.ui.theme\n\nimport android.app.Activity\nimport android.os.Build\nimport androidx.compose.foundation.isSystemInDarkTheme\nimport androidx.compose.material3.MaterialTheme\nimport androidx.compose.material3.darkColorScheme\nimport androidx.compose.material3.dynamicDarkColorScheme\nimport androidx.compose.material3.dynamicLightColorScheme\nimport androidx.compose.material3.lightColorScheme\nimport androidx.compose.runtime.Composable\nimport androidx.compose.ui.platform.LocalContext\n\nprivate val DarkColorScheme = darkColorScheme(\n    primary = Purple80,\n    secondary = PurpleGrey80,\n    tertiary = Pink80\n)\n\nprivate val LightColorScheme = lightColorScheme(\n    primary = Purple40,\n    secondary = PurpleGrey40,\n    tertiary = Pink40\n\n    /* Other default colors to override\n    background = Color(0xFFFFFBFE),\n    surface = Color(0xFFFFFBFE),\n    onPrimary = Color.White,\n    onSecondary = Color.White,\n    onTertiary = Color.White,\n    onBackground = Color(0xFF1C1B1F),\n    onSurface = Color(0xFF1C1B1F),\n    */\n)\ns\n@Composable\nfun ShareToStremioTheme(\n    darkTheme: Boolean = isSystemInDarkTheme(),\n    // Dynamic color is available on Android 12+\n    dynamicColor: Boolean = true,\n    content: @Composable () -> Unit\n) {\n    val colorScheme = when {\n        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {\n            val context = LocalContext.current\n            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)\n        }\n\n        darkTheme -> DarkColorScheme\n        else -> LightColorScheme\n    }\n\n    MaterialTheme(\n        colorScheme = colorScheme,\n        typography = Typography,\n        content = content\n    )\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/rizz2pro/sharetostremio/ui/theme/Theme.kt b/app/src/main/java/com/rizz2pro/sharetostremio/ui/theme/Theme.kt
+--- a/app/src/main/java/com/rizz2pro/sharetostremio/ui/theme/Theme.kt	(revision 6dbe043687de1e6d84cc8ba0855e6982d92e974c)
++++ b/app/src/main/java/com/rizz2pro/sharetostremio/ui/theme/Theme.kt	(date 1772608475613)
+@@ -32,7 +32,7 @@
+     onSurface = Color(0xFF1C1B1F),
+     */
+ )
+-s
++
+ @Composable
+ fun ShareToStremioTheme(
+     darkTheme: Boolean = isSystemInDarkTheme(),
