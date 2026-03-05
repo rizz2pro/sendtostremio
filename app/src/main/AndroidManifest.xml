@@ -16,10 +16,10 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:label="@string/share_activity_label"
             android:excludeFromRecents="true"
-            android:noHistory="true">
+            android:label="@string/share_activity_label">
+            <!-- No theme override here — defaults to app theme so WebView is visible -->
+            <!-- noHistory removed so WebView login can persist until auth completes -->
 
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>

@@ -1,29 +1,25 @@
 package com.rizz2pro.sharetostremio
 
 import android.app.Activity
-import android.os.Build
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.widget.EditText
-import android.widget.LinearLayout
+import android.webkit.JavascriptInterface
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
-import kotlinx.coroutines.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 
 class MainActivity : Activity() {
 
     private val TAG = "SendToStremio"
-    private val client = OkHttpClient()
     private lateinit var prefs: SharedPreferences
+    private var pendingImdbId: String? = null
+    private var webView: WebView? = null
+    private var authKeyCaptured = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,9 +30,7 @@ class MainActivity : Activity() {
 
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
         prefs = EncryptedSharedPreferences.create(
-            "stremio_secure",
-            masterKeyAlias,
-            this,
+            "stremio_secure", masterKeyAlias, this,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
@@ -46,32 +40,114 @@ class MainActivity : Activity() {
 
     private fun handleIntent(intent: Intent?) {
         val sharedText = intent?.getStringExtra(Intent.EXTRA_TEXT) ?: intent?.dataString
-
         if (sharedText == null) {
             Toast.makeText(this, "No URL shared", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+            finish(); return
         }
-
         val imdbId = extractImdbId(sharedText)
         if (imdbId == null) {
             Toast.makeText(this, "Invalid IMDb URL", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+            finish(); return
         }
-
         Log.d(TAG, "Extracted IMDb ID: $imdbId")
 
         val authKey = prefs.getString("authKey", null)
         if (authKey.isNullOrBlank()) {
-            promptLogin(imdbId)
+            pendingImdbId = imdbId
+            showStremioLogin()
         } else {
             startStremioService(imdbId, authKey)
         }
     }
 
-    private fun extractImdbId(url: String): String? {
-        return """/title/(tt\d+)""".toRegex().find(url)?.groups?.get(1)?.value
+    private fun extractImdbId(url: String): String? =
+        """/title/(tt\d+)""".toRegex().find(url)?.groups?.get(1)?.value
+
+    // ==========================
+    // JS BRIDGE
+    // ==========================
+    inner class Bridge {
+        @JavascriptInterface
+        fun onAuthKey(authKey: String) {
+            if (authKey.isBlank() || authKeyCaptured) return
+            Log.d(TAG, "Got authKey")
+            onAuthKeyFound(authKey)
+        }
+    }
+
+    private fun onAuthKeyFound(authKey: String) {
+        if (authKeyCaptured) return
+        authKeyCaptured = true
+        prefs.edit().putString("authKey", authKey).apply()
+        runOnUiThread {
+            webView?.destroy()
+            webView = null
+            pendingImdbId?.let { startStremioService(it, authKey) } ?: finish()
+        }
+    }
+
+    // ==========================
+    // WEBVIEW
+    // ==========================
+    private fun showStremioLogin() {
+        val wv = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            addJavascriptInterface(Bridge(), "Android")
+
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView, url: String) {
+                    Log.d(TAG, "Page finished: $url")
+
+                    if (url.contains("/intro")) {
+                        // Not logged in — show toast and patch fetch to catch login response
+                        Log.d(TAG, "User not logged in — showing login page")
+                        Toast.makeText(this@MainActivity, "Please log in to Stremio", Toast.LENGTH_LONG).show()
+                        view.evaluateJavascript("""
+                            (function() {
+                                if (window.__stremioSniff) return;
+                                window.__stremioSniff = true;
+                                const _fetch = window.fetch.bind(window);
+                                window.fetch = async function(input, init) {
+                                    const url = typeof input === 'string' ? input : (input && input.url) || '';
+                                    const resp = await _fetch(input, init);
+                                    if (url.includes('api.strem.io')) {
+                                        try {
+                                            resp.clone().text().then(function(text) {
+                                                try {
+                                                    var j = JSON.parse(text);
+                                                    if (j.result && j.result.authKey) {
+                                                        Android.onAuthKey(j.result.authKey);
+                                                    }
+                                                } catch(e) {}
+                                            });
+                                        } catch(e) {}
+                                    }
+                                    return resp;
+                                };
+                            })();
+                        """.trimIndent(), null)
+                    } else {
+                        // Already logged in — read authKey from localStorage profile
+                        Log.d(TAG, "User already logged in — reading profile")
+                        view.evaluateJavascript("""
+                            (function() {
+                                try {
+                                    var p = JSON.parse(localStorage.getItem('profile') || '{}');
+                                    if (p.authKey) { Android.onAuthKey(p.authKey); return; }
+                                    if (p.auth && p.auth.key) { Android.onAuthKey(p.auth.key); return; }
+                                    if (p.user && p.user.authKey) { Android.onAuthKey(p.user.authKey); return; }
+                                } catch(e) {}
+                            })();
+                        """.trimIndent(), null)
+                    }
+                }
+            }
+        }
+
+        webView = wv
+        setContentView(wv)
+        wv.loadUrl("https://web.stremio.com/#/intro?form=login")
     }
 
     private fun startStremioService(imdbId: String, authKey: String) {
@@ -84,67 +160,8 @@ class MainActivity : Activity() {
         finish()
     }
 
-    // ==========================
-    // LOGIN
-    // ==========================
-    private fun promptLogin(imdbId: String) {
-        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val emailInput = EditText(this).apply { hint = "Email" }
-        val passInput = EditText(this).apply {
-            hint = "Password"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                    android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-        layout.addView(emailInput)
-        layout.addView(passInput)
-
-        AlertDialog.Builder(this)
-            .setTitle("Stremio Login")
-            .setView(layout)
-            .setCancelable(false)
-            .setPositiveButton("Login") { _, _ ->
-                login(emailInput.text.toString(), passInput.text.toString(), imdbId)
-            }
-            .setNegativeButton("Cancel") { _, _ -> finish() }
-            .show()
-    }
-
-    private fun login(email: String, password: String, imdbId: String) {
-        Toast.makeText(this, "Logging in...", Toast.LENGTH_SHORT).show()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val json = JSONObject().apply {
-                    put("type", "Login")
-                    put("email", email)
-                    put("password", password)
-                    put("facebook", false)
-                }
-                val body = json.toString()
-                    .toRequestBody("text/plain;charset=UTF-8".toMediaTypeOrNull())
-                val request = Request.Builder()
-                    .url("https://api.strem.io/api/login")
-                    .post(body)
-                    .build()
-
-                client.newCall(request).execute().use { response ->
-                    val authKey = JSONObject(response.body?.string() ?: "{}")
-                        .optJSONObject("result")
-                        ?.optString("authKey", null)
-
-                    if (!authKey.isNullOrBlank()) {
-                        prefs.edit().putString("authKey", authKey).apply()
-                        runOnUiThread { startStremioService(imdbId, authKey) }
-                    } else {
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Login failed — check credentials", Toast.LENGTH_LONG).show()
-                            promptLogin(imdbId)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Login error", e)
-                runOnUiThread { promptLogin(imdbId) }
-            }
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        webView?.destroy()
     }
 }
