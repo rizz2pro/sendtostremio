@@ -42,44 +42,57 @@ class StremioService : IntentService("StremioService") {
         val imdbId = intent?.getStringExtra(EXTRA_IMDB_ID) ?: return
         val authKey = intent.getStringExtra(EXTRA_AUTH_KEY) ?: return
         Log.d(TAG, "Service started for $imdbId")
-        fetchImdbAndSend(imdbId, authKey)
+        fetchAndSend(imdbId, authKey)
     }
 
-    private fun fetchImdbAndSend(imdbId: String, authKey: String) {
-        try {
-            val request = Request.Builder()
-                .url("https://www.imdb.com/title/$imdbId/")
-                .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-                .build()
+    private fun fetchAndSend(imdbId: String, authKey: String) {
+        // Query both endpoints and trust the `type` field in the response,
+        // not which endpoint we queried — Cinemeta can have entries under both
+        data class CinemetaResult(val title: String, val type: String)
 
-            client.newCall(request).execute().use { response ->
-                val html = response.body?.string()
-                if (html.isNullOrBlank()) {
-                    notify("Error", "Could not reach IMDb")
-                    return
+        fun queryCinemeta(t: String): CinemetaResult? {
+            return try {
+                val request = Request.Builder()
+                    .url("https://v3-cinemeta.strem.io/meta/$t/$imdbId.json")
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    val body = response.body?.string()
+                    Log.d(TAG, "Cinemeta $t: ${response.code}")
+                    body?.chunked(3000)?.forEachIndexed { i, chunk -> Log.d(TAG, "Cinemeta body[$i]: $chunk") }
+                    if (response.isSuccessful && !body.isNullOrBlank()) {
+                        val meta = JSONObject(body).optJSONObject("meta")
+                        val name = meta?.optString("name", "")?.takeIf { it.isNotBlank() }
+                        val actualType = meta?.optString("type", t) ?: t
+                        if (name != null) CinemetaResult(name, actualType) else null
+                    } else null
                 }
-
-                val rawTitle = "<title>(.*?) - IMDb</title>".toRegex()
-                    .find(html)?.groups?.get(1)?.value
-
-                if (rawTitle == null) {
-                    notify("Error", "Could not parse IMDb page")
-                    return
-                }
-
-                val type = if (rawTitle.contains("TV Series", ignoreCase = true)
-                    || rawTitle.contains("TV Mini Series", ignoreCase = true)
-                ) "series" else "movie"
-
-                val cleanTitle = rawTitle.replace(Regex("\\s*\\(.*?\\)"), "").trim()
-                Log.d(TAG, "Title: $cleanTitle | Type: $type")
-                sendToStremio(authKey, imdbId, cleanTitle, type)
+            } catch (e: Exception) {
+                Log.w(TAG, "Cinemeta $t lookup failed", e)
+                null
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Network error fetching IMDb", e)
-            notify("Error", "Network failure fetching IMDb")
         }
+
+        val movieResult = queryCinemeta("movie")
+        val seriesResult = queryCinemeta("series")
+
+        Log.d(TAG, "movie result: $movieResult")
+        Log.d(TAG, "series result: $seriesResult")
+
+        // Prefer whichever result's `type` field matches the endpoint we queried —
+        // if series endpoint returns type=series, that's the authoritative answer
+        val result = when {
+            seriesResult?.type == "series" -> seriesResult
+            movieResult?.type == "movie" -> movieResult
+            seriesResult != null -> seriesResult
+            movieResult != null -> movieResult
+            else -> null
+        }
+
+        val title = result?.title ?: imdbId  // fallback to ID — Stremio resolves it anyway
+        val type = result?.type ?: "movie"
+
+        Log.d(TAG, "Sending — Title: $title | Type: $type")
+        sendToStremio(authKey, imdbId, title, type)
     }
 
     private fun sendToStremio(authKey: String, imdbId: String, name: String, type: String) {
@@ -142,7 +155,7 @@ class StremioService : IntentService("StremioService") {
                     }
                     respText.contains("\"result\"", ignoreCase = true) -> {
                         Log.d(TAG, "Successfully added: $name ($type)")
-                        notify("Added to Stremio", name)
+                        notify("Added to Stremio ✓", name)
                     }
                     else -> {
                         Log.e(TAG, "Unexpected response: $respText")
