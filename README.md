@@ -27,8 +27,5 @@ IMDb SHARE LINK:
 
 DO NOT use the built in Share link on IMDB. You need to share from your browser. The built in IMDb Share link does not offer the Send to Stremio link as it is part of rhe website and has no idea what apps are on your phone. 
 
-
-
-
-
-
+<img width="1080" height="1773" alt="1000031470" src="https://github.com/user-attachments/assets/c5616ee3-aefa-4856-bc89-c84da5688611" />
+<img width="1080" height="1072" alt="1000031469" src="https://github.com/user-attachments/assets/06d39faf-1af7-4814-ba30-03e476a1b490" />
