@@ -17,9 +17,15 @@ HOW TO USE
 
 THINGS TO KNOW: 
 
+APP PERMISSIONS:
+
 This app will ask for NOTIFICATION PERMISSIONS when you first install. It needs it to send a notification with the success message. THIS IS OPTIONAL so feel free to say NO, but you wont have any indication that the title was added or if there was an error. 
 
 I will try to bring back pop up messages but since it runs in the background, that makes things harder. 
+
+IMDb SHARE LINK:
+
+DO NOT use the built in Share link on IMDB. You need to share from your browser. The built in IMDb Share link does not offer the Send to Stremio link as it is part of rhe website and has no idea what apps are on your phone. 
 
 
 
