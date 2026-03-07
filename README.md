@@ -9,6 +9,8 @@ Finding something on IMDb, then opening Stremio, searching for it, adding to my 
 
 **DEMO**
 
+![Demo](Videoleap_2026_03_06_19_15_16_920.gif)
+
 **HOW TO USE:**
 
 - Find something you want to add to your library on IMDb 
