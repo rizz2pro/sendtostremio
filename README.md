@@ -16,14 +16,16 @@ Finding something on IMDb, then opening Stremio, searching for it, adding to my 
 
 **THINGS TO KNOW:**
 
+**THERE IS NO APP ICON**
+There is nothing to do within the app so there is no app icon. To **uninstall** it, go to Settings -> Apps -> Send to Stremio -> Uninstall
+
 **APP PERMISSIONS:**
 This app will ask for NOTIFICATION PERMISSIONS when you first install. It needs it to send a notification with the success message. THIS IS OPTIONAL so feel free to say NO, but you wont have any indication that the title was added or if there was an error. 
 
-![1000031467](https://github.com/user-attachments/assets/75a09bf4-25ef-47d5-9868-cce335c980cd)
+Example of Notifications:
 <img width="270" height="439" alt="1000031467" src="https://github.com/user-attachments/assets/75a09bf4-25ef-47d5-9868-cce335c980cd" />
 
-
-I will try to bring back pop up messages but since it runs in the background, that makes things harder. 
+I will try to bring back pop up messages but since it runs in the background, that makes things harder. You will only see a pop-up toast message during login and when sending, as those do happen in foreground.
 
 **IMDb SHARE LINK:**
 
