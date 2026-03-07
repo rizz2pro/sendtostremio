@@ -1,3 +1,4 @@
+
 SEND TO STREMIO 
 
 This app acts as a middleman that lets you share an IMDb link right to Send to Stremio where the data (title/type) will be parsed and then added to your Stremio library via the Stremio API. 
@@ -20,6 +21,8 @@ THINGS TO KNOW:
 APP PERMISSIONS:
 
 This app will ask for NOTIFICATION PERMISSIONS when you first install. It needs it to send a notification with the success message. THIS IS OPTIONAL so feel free to say NO, but you wont have any indication that the title was added or if there was an error. 
+
+![1000031467](https://github.com/user-attachments/assets/75a09bf4-25ef-47d5-9868-cce335c980cd)
 
 I will try to bring back pop up messages but since it runs in the background, that makes things harder. 
 
