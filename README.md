@@ -13,7 +13,7 @@ Finding something on IMDb, then opening Stremio, searching for it, adding to my 
 
 **HOW TO USE:**
 
-- Find something you want to add to your library on IMDb 
+- Find something you want to add to your library on IMDb (You can use google too, and share the IMDb link from there. See the end of demo for that part.)
 - Select SHARE then select Send to Stremio app on the list.
 - Title is added to Stremio
 - Repeat
