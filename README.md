@@ -20,7 +20,8 @@ Finding something on IMDb, then opening Stremio, searching for it, adding to my 
 
 **THERE IS NO APP ICON:**
 
-There is nothing to do within the app so there is no app icon. To **uninstall** it, go to Settings -> Apps -> Send to Stremio -> Uninstall
+There is nothing to do within the app so there is no app icon. 
+To **uninstall** it, go to Settings -> Apps -> Send to Stremio -> Uninstall
 
 **APP PERMISSIONS:**
 
