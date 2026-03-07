@@ -7,6 +7,8 @@ I made this app because I prefer to find movies on IMDb rather than use the Stre
 
 Finding something on IMDb, then opening Stremio, searching for it, adding to my Library gets a bit tedious especially if I am adding multiple movies/shows or haven't decided exactly what to watch but may want to watch some later. 
 
+I also don't want to use Trakt, I want this done on-demand.
+
 **DEMO**
 
 ![Demo](Videoleap_2026_03_06_19_15_16_920.gif)
